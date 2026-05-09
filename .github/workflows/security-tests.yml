@@ -19,37 +19,34 @@ jobs:
     name: 🔍 Security Analysis & Test Generation
     runs-on: ubuntu-latest
 
+    env:
+      PYTHONPATH: .
+
     permissions:
       contents: read
-      security-events: write
 
     steps:
 
-      # ── 1. Checkout ──────────────────────────────────────────────
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      # ── 2. Python setup ──────────────────────────────────────────
       - name: 🐍 Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
 
-      # ── 3. Install dependencies ──────────────────────────────────
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pytest pytest-html
 
-      # ── 4. Create output directories ─────────────────────────────
       - name: 📁 Create output directories
         run: |
           mkdir -p tests/generated
           mkdir -p tests/results
           mkdir -p reports
 
-      # ── 5. Run Security Scanner ───────────────────────────────────
       - name: 🔍 Run Security Analysis
         id: security_scan
         run: |
@@ -58,7 +55,11 @@ jobs:
           python runner/run.py sample_app/ --fail-on $FAIL_ON
         continue-on-error: true
 
-      # ── 6. Upload HTML Report ─────────────────────────────────────
+      - name: 🧪 Run Generated Tests
+        id: run_tests
+        run: |
+          pytest tests/generated/ -v --tb=short || true
+
       - name: 📊 Upload Security Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -67,7 +68,6 @@ jobs:
           path: reports/
           retention-days: 30
 
-      # ── 7. Upload Generated Tests ─────────────────────────────────
       - name: 🧪 Upload Generated Tests
         uses: actions/upload-artifact@v4
         if: always()
@@ -76,22 +76,19 @@ jobs:
           path: tests/
           retention-days: 14
 
-      # ── 8. Security Gate ──────────────────────────────────────────
-      - name: 🚦 Security Gate — Block build if vulnerabilities found
+      - name: 🚦 Security Gate
         if: steps.security_scan.outcome == 'failure'
         run: |
-          echo "═══════════════════════════════════════════════════"
+          echo "=================================================="
           echo "❌ BUILD BLOQUÉ PAR LE SECURITY GATE"
-          echo "Des vulnérabilités de sévérité >= ${{ steps.security_scan.outputs.fail_on }} ont été détectées."
+          echo "Des vulnérabilités critiques ont été détectées."
           echo "Consultez l'artifact 'security-report' pour le détail."
-          echo "═══════════════════════════════════════════════════"
+          echo "=================================================="
           exit 1
 
-      # ── 9. Success ────────────────────────────────────────────────
-      - name: ✅ Security Gate — Build authorized
+      - name: ✅ Build Authorized
         if: steps.security_scan.outcome == 'success'
         run: |
-          echo "═══════════════════════════════════════════════════"
-          echo "✅ SECURITY GATE PASSED"
-          echo "Aucune vulnérabilité bloquante détectée."
-          echo "═══════════════════════════════════════════════════"
+          echo "=================================================="
+          echo "✅ SECURITY GATE PASSED — Build autorisé"
+          echo "=================================================="

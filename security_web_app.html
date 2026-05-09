@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Regression Test Generator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #080c14;
+  --surface: #0d1321;
+  --surface2: #141d2e;
+  --surface3: #1a2540;
+  --border: rgba(99,179,237,0.12);
+  --border2: rgba(99,179,237,0.25);
+  --text: #e8f0fe;
+  --muted: #6b7fa3;
+  --accent: #3b82f6;
+  --accent2: #60a5fa;
+  --critical: #f87171;
+  --high: #fb923c;
+  --medium: #fbbf24;
+  --low: #34d399;
+  --info: #60a5fa;
+  --glow: rgba(59,130,246,0.15);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content:'';
+  position: fixed;
+  top: -200px; left: 50%;
+  transform: translateX(-50%);
+  width: 800px; height: 400px;
+  background: radial-gradient(ellipse, rgba(59,130,246,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.header {
+  position: relative;
+  z-index: 1;
+  padding: 36px 48px 28px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  backdrop-filter: blur(10px);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo-shield {
+  width: 44px; height: 44px;
+  background: linear-gradient(135deg, #1e3a5f, #2563eb);
+  border-radius: 10px;
+  border: 1px solid rgba(59,130,246,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 0 20px rgba(59,130,246,0.2);
+}
+
+.logo-text {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 2px;
+  color: var(--text);
+  line-height: 1;
+}
+
+.logo-sub {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.badge-ai {
+  background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2));
+  border: 1px solid rgba(139,92,246,0.4);
+  color: #a78bfa;
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-size: 0.72rem;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 1px;
+}
+
+.main {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 48px 80px;
+}
+
+/* ── UPLOAD ZONE ── */
+.upload-section { margin-bottom: 40px; }
+
+.upload-zone {
+  border: 2px dashed var(--border2);
+  border-radius: 16px;
+  padding: 60px 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(59,130,246,0.05), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--surface2);
+}
+
+.upload-zone:hover::before, .upload-zone.drag-over::before { opacity: 1; }
+
+.upload-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  display: block;
+  filter: drop-shadow(0 0 12px rgba(59,130,246,0.4));
+}
+
+.upload-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.upload-sub {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.upload-sub span {
+  color: var(--accent2);
+  background: rgba(59,130,246,0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin: 0 2px;
+}
+
+#fileInput { display: none; }
+
+/* ── OR PASTE ── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 24px 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.code-input-wrap {
+  position: relative;
+}
+
+.lang-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.lang-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  transition: all 0.2s;
+}
+
+.lang-btn.active {
+  background: rgba(59,130,246,0.15);
+  border-color: var(--accent);
+  color: var(--accent2);
+}
+
+#codeInput {
+  width: 100%;
+  min-height: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.82rem;
+  padding: 16px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+  line-height: 1.6;
+}
+
+#codeInput:focus { border-color: var(--accent); }
+#codeInput::placeholder { color: var(--muted); }
+
+/* ── SCAN BUTTON ── */
+.scan-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  border: 1px solid rgba(99,179,237,0.3);
+  border-radius: 12px;
+  color: white;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.scan-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent, rgba(255,255,255,0.08));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.scan-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(37,99,235,0.4); }
+.scan-btn:hover::before { opacity: 1; }
+.scan-btn:active { transform: translateY(0); }
+.scan-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ── LOADING ── */
+.loading {
+  display: none;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.loading.active { display: block; }
+
+.loader-ring {
+  width: 60px; height: 60px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 300px;
+  margin: 20px auto 0;
+}
+
+.loading-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--muted);
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: all 0.3s;
+}
+
+.loading-step.done { color: var(--low); border-color: rgba(52,211,153,0.3); }
+.loading-step.active { color: var(--accent2); border-color: rgba(96,165,250,0.3); background: var(--surface2); }
+
+.step-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.step-dot.spinning {
+  animation: pulse 1s ease infinite;
+}
+
+@keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+
+/* ── RESULTS ── */
+#results { display: none; }
+#results.active { display: block; }
+
+/* Score banner */
+.result-header {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 32px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.score-ring {
+  position: relative;
+  width: 90px; height: 90px;
+  flex-shrink: 0;
+}
+
+.score-ring svg { transform: rotate(-90deg); }
+
+.score-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.score-label { font-size: 0.6rem; color: var(--muted); }
+
+.result-meta h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.result-meta p {
+  font-size: 0.85rem;
+  color: var(--muted);
+  max-width: 500px;
+}
+
+.result-actions { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+
+.btn-outline:hover { background: var(--surface2); border-color: var(--accent); }
+
+/* KPIs */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.kpi-n {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.kpi-l {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* AI Analysis */
+.ai-section {
+  background: var(--surface);
+  border: 1px solid rgba(139,92,246,0.25);
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+}
+
+.ai-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.ai-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(99,102,241,0.3));
+  border-radius: 8px;
+  border: 1px solid rgba(139,92,246,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+
+.ai-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #c4b5fd;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 1px;
+}
+
+.ai-content {
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+/* Vuln list */
+.vuln-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+
+.vuln-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  border-left: 3px solid var(--muted);
+  transition: all 0.2s;
+}
+
+.vuln-card:hover { background: var(--surface2); }
+.vuln-card.sev-CRITICAL { border-left-color: var(--critical); }
+.vuln-card.sev-HIGH { border-left-color: var(--high); }
+.vuln-card.sev-MEDIUM { border-left-color: var(--medium); }
+.vuln-card.sev-LOW { border-left-color: var(--low); }
+
+.vuln-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.sev-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  padding: 3px 10px;
+  border-radius: 50px;
+  letter-spacing: 0.5px;
+}
+
+.sev-badge.CRITICAL { background: rgba(248,113,113,0.15); color: var(--critical); border: 1px solid rgba(248,113,113,0.3); }
+.sev-badge.HIGH { background: rgba(251,146,60,0.15); color: var(--high); border: 1px solid rgba(251,146,60,0.3); }
+.sev-badge.MEDIUM { background: rgba(251,191,36,0.15); color: var(--medium); border: 1px solid rgba(251,191,36,0.3); }
+.sev-badge.LOW { background: rgba(52,211,153,0.15); color: var(--low); border: 1px solid rgba(52,211,153,0.3); }
+
+.vuln-name { font-weight: 600; font-size: 0.92rem; }
+
+.cwe-pill {
+  font-size: 0.68rem;
+  font-family: 'IBM Plex Mono', monospace;
+  color: #818cf8;
+  background: rgba(99,102,241,0.12);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: auto;
+}
+
+.vuln-desc { font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; }
+
+.vuln-line {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: #fcd34d;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.vuln-rec {
+  font-size: 0.78rem;
+  color: #86efac;
+  margin-top: 8px;
+  padding-left: 12px;
+  border-left: 2px solid rgba(52,211,153,0.3);
+}
+
+/* Generated tests preview */
+.tests-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+}
+
+.tests-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.tests-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.tests-code {
+  background: #0a0f1a;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  color: #a5b4fc;
+  overflow-x: auto;
+  white-space: pre;
+  max-height: 300px;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+/* Gate result */
+.gate-banner {
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.gate-banner.blocked {
+  background: rgba(248,113,113,0.1);
+  border: 1px solid rgba(248,113,113,0.3);
+  color: var(--critical);
+}
+
+.gate-banner.pass {
+  background: rgba(52,211,153,0.1);
+  border: 1px solid rgba(52,211,153,0.3);
+  color: var(--low);
+}
+
+.gate-icon { font-size: 1.8rem; }
+
+.gate-text p { font-size: 0.82rem; opacity: 0.8; font-weight: 400; margin-top: 2px; }
+
+/* Section title */
+.sec-title {
+  font-size: 0.72rem;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--muted);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sec-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.rescan-btn {
+  display: block;
+  width: 100%;
+  margin-top: 32px;
+  padding: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+}
+
+.rescan-btn:hover { color: var(--text); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-shield">🔒</div>
+    <div>
+      <div class="logo-text">SECTEST · GENERATOR</div>
+      <div class="logo-sub">DevSecOps — CI/CD Security Pipeline</div>
+    </div>
+  </div>
+  <div class="badge-ai">⚡ AI-POWERED · CLAUDE</div>
+</div>
+
+<div class="main">
+
+  <!-- Upload Zone -->
+  <div class="upload-section" id="uploadSection">
+    <div class="upload-zone" id="dropZone">
+      <span class="upload-icon">🛡️</span>
+      <div class="upload-title">Déposez votre fichier de code ici</div>
+      <div class="upload-sub" style="margin-top:8px">
+        Formats acceptés : <span>.py</span> <span>.js</span> <span>.ts</span>
+      </div>
+      <div class="upload-sub" style="margin-top:6px; font-size:0.75rem">ou cliquez pour sélectionner</div>
+      <input type="file" id="fileInput" accept=".py,.js,.ts">
+    </div>
+
+    <div class="divider">OU COLLEZ VOTRE CODE</div>
+
+    <div class="lang-selector">
+      <button class="lang-btn active" data-lang="python">🐍 Python</button>
+      <button class="lang-btn" data-lang="javascript">⚡ JavaScript</button>
+    </div>
+
+    <div class="code-input-wrap">
+      <textarea id="codeInput" placeholder="# Collez votre code ici pour analyse...
+# Exemple:
+def get_user(username):
+    query = &quot;SELECT * FROM users WHERE name='&quot; + username + &quot;'&quot;
+    cursor.execute(query)"></textarea>
+    </div>
+
+    <button class="scan-btn" id="scanBtn" onclick="startScan()">
+      🔍 &nbsp; ANALYSER LE CODE
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="loader-ring"></div>
+    <p style="font-size:0.9rem; color:var(--muted); font-family:'IBM Plex Mono',monospace; margin-bottom:20px">
+      Analyse en cours...
+    </p>
+    <div class="loading-steps">
+      <div class="loading-step" id="step1">
+        <div class="step-dot"></div>
+        Lecture du code source
+      </div>
+      <div class="loading-step" id="step2">
+        <div class="step-dot"></div>
+        Détection des patterns
+      </div>
+      <div class="loading-step" id="step3">
+        <div class="step-dot"></div>
+        Analyse IA approfondie
+      </div>
+      <div class="loading-step" id="step4">
+        <div class="step-dot"></div>
+        Génération des tests
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <div id="resultHeader" class="result-header">
+      <div class="score-ring">
+        <svg width="90" height="90" viewBox="0 0 90 90">
+          <circle cx="45" cy="45" r="38" fill="none" stroke="rgba(99,179,237,0.1)" stroke-width="6"/>
+          <circle cx="45" cy="45" r="38" fill="none" id="scoreCircle"
+            stroke="#3b82f6" stroke-width="6"
+            stroke-linecap="round"
+            stroke-dasharray="238.76"
+            stroke-dashoffset="238.76"/>
+        </svg>
+        <div class="score-text">
+          <span class="score-num" id="scoreNum">--</span>
+          <span class="score-label">/100</span>
+        </div>
+      </div>
+      <div class="result-meta">
+        <h2 id="resultTitle">Analyse terminée</h2>
+        <p id="resultDesc">--</p>
+      </div>
+      <div class="result-actions">
+        <button class="btn-outline" onclick="copyTests()">📋 Copier les tests</button>
+        <button class="btn-outline" onclick="downloadReport()">⬇ Télécharger rapport</button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-n" id="kpiTotal" style="color:var(--accent2)">0</div><div class="kpi-l">Total</div></div>
+      <div class="kpi"><div class="kpi-n" id="kpiCritical" style="color:var(--critical)">0</div><div class="kpi-l">Critical</div></div>
+      <div class="kpi"><div class="kpi-n" id="kpiHigh" style="color:var(--high)">0</div><div class="kpi-l">High</div></div>
+      <div class="kpi"><div class="kpi-n" id="kpiMedium" style="color:var(--medium)">0</div><div class="kpi-l">Medium</div></div>
+      <div class="kpi"><div class="kpi-n" id="kpiLow" style="color:var(--low)">0</div><div class="kpi-l">Low</div></div>
+      <div class="kpi"><div class="kpi-n" id="kpiTests" style="color:#c4b5fd">0</div><div class="kpi-l">Tests générés</div></div>
+    </div>
+
+    <!-- AI Analysis -->
+    <div class="ai-section">
+      <div class="ai-header">
+        <div class="ai-icon">🤖</div>
+        <div class="ai-title">ANALYSE IA — CLAUDE</div>
+      </div>
+      <div class="ai-content" id="aiAnalysis">Chargement de l'analyse IA...</div>
+    </div>
+
+    <!-- Vulnerabilities -->
+    <div class="sec-title">Vulnérabilités détectées</div>
+    <div class="vuln-list" id="vulnList"></div>
+
+    <!-- Generated Tests -->
+    <div class="tests-section">
+      <div class="tests-header">
+        <div class="tests-title">🧪 Tests générés (pytest)</div>
+      </div>
+      <div class="tests-code" id="testsCode">-- En attente --</div>
+    </div>
+
+    <!-- Security Gate -->
+    <div class="sec-title">Security Gate CI/CD</div>
+    <div class="gate-banner" id="gateBanner">
+      <span class="gate-icon" id="gateIcon">⏳</span>
+      <div class="gate-text">
+        <div id="gateTitle">Calcul en cours...</div>
+        <p id="gateDesc"></p>
+      </div>
+    </div>
+
+    <button class="rescan-btn" onclick="resetApp()">↩ Analyser un autre fichier</button>
+  </div>
+</div>
+
+<script>
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+
+const PYTHON_RULES = [
+  { id:"PY001", name:"SQL Injection", severity:"CRITICAL", category:"Injection", pattern:/execute\s*\(\s*['"].*?\+|execute\s*\(\s*f['"]/i, cwe:"CWE-89", recommendation:"Utilisez des requêtes paramétrées: cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))" },
+  { id:"PY002", name:"Hardcoded Secret", severity:"HIGH", category:"Secret Exposure", pattern:/(?:password|secret|api_key|token|passwd)\s*=\s*['"][^'"]{4,}['"]/i, cwe:"CWE-798", recommendation:"Utilisez os.environ.get('SECRET_KEY') ou un fichier .env" },
+  { id:"PY003", name:"Command Injection", severity:"CRITICAL", category:"Injection", pattern:/subprocess\.(run|call|Popen)|os\.system.*shell\s*=\s*True/i, cwe:"CWE-78", recommendation:"Utilisez shell=False et passez les arguments en liste: subprocess.run(['ping', host])" },
+  { id:"PY004", name:"Weak Hash (MD5/SHA1)", severity:"HIGH", category:"Cryptography", pattern:/hashlib\.(md5|sha1)\s*\(/i, cwe:"CWE-328", recommendation:"Utilisez bcrypt, argon2, ou hashlib.sha256 avec sel" },
+  { id:"PY005", name:"Path Traversal", severity:"HIGH", category:"File Access", pattern:/open\s*\(\s*[\w\s]*\+|open\s*\(\s*f['"]/i, cwe:"CWE-22", recommendation:"Validez le chemin avec os.path.abspath() et vérifiez qu'il commence par le répertoire autorisé" },
+  { id:"PY006", name:"Insecure Deserialization", severity:"CRITICAL", category:"Deserialization", pattern:/pickle\.(loads|load)\s*\(/i, cwe:"CWE-502", recommendation:"Utilisez json.loads() pour l'échange de données. Ne jamais désérialiser des données non fiables." },
+  { id:"PY007", name:"Insecure Random", severity:"MEDIUM", category:"Cryptography", pattern:/random\.(randint|random|choice|randrange)\s*\(/i, cwe:"CWE-338", recommendation:"Utilisez secrets.token_hex() ou secrets.token_urlsafe() pour les tokens de sécurité" },
+  { id:"PY008", name:"XSS — Unescaped Output", severity:"HIGH", category:"XSS", pattern:/f['"]\s*.*<.*?\{[\w_]+\}.*>['"]/i, cwe:"CWE-79", recommendation:"Utilisez html.escape() ou un moteur de templates avec auto-échappement (Jinja2)" },
+];
+
+const JS_RULES = [
+  { id:"JS001", name:"SQL Injection", severity:"CRITICAL", category:"Injection", pattern:/['"]SELECT.*WHERE.*['"]\s*\+\s*\w+|`SELECT.*\$\{/i, cwe:"CWE-89", recommendation:"Utilisez des requêtes paramétrées ou un ORM comme Sequelize/Prisma" },
+  { id:"JS002", name:"Hardcoded Secret", severity:"HIGH", category:"Secret Exposure", pattern:/(?:password|secret|api_?key|token)\s*=\s*['"][^'"]{4,}['"]/i, cwe:"CWE-798", recommendation:"Utilisez process.env.SECRET_KEY et un fichier .env exclu du git" },
+  { id:"JS003", name:"XSS — DOM Injection", severity:"HIGH", category:"XSS", pattern:/(innerHTML|outerHTML|document\.write)\s*=.*(\$\{|req\.(query|body|params))/i, cwe:"CWE-79", recommendation:"Utilisez textContent au lieu de innerHTML, ou sanitisez avec DOMPurify" },
+  { id:"JS004", name:"Command Injection", severity:"CRITICAL", category:"Injection", pattern:/exec\s*\(\s*`[^`]*\$\{|exec\s*\(\s*['"]\s*.*?\+/i, cwe:"CWE-78", recommendation:"Utilisez execFile() avec un tableau d'arguments. Ne jamais concaténer l'input utilisateur" },
+  { id:"JS005", name:"Dangerous eval()", severity:"CRITICAL", category:"Code Injection", pattern:/\beval\s*\(/i, cwe:"CWE-95", recommendation:"N'utilisez jamais eval(). Utilisez JSON.parse() pour les données" },
+  { id:"JS006", name:"Insecure Random", severity:"MEDIUM", category:"Cryptography", pattern:/Math\.random\s*\(/i, cwe:"CWE-338", recommendation:"Utilisez crypto.randomBytes() ou crypto.getRandomValues() pour les tokens de sécurité" },
+  { id:"JS007", name:"Path Traversal", severity:"HIGH", category:"File Access", pattern:/(sendFile|readFile|readFileSync)\s*\(.*(\+|\$\{).*\)/i, cwe:"CWE-22", recommendation:"Utilisez path.resolve() et vérifiez que le résultat commence par le répertoire autorisé" },
+  { id:"JS008", name:"Prototype Pollution", severity:"HIGH", category:"Object Injection", pattern:/for\s*\(\s*(?:let|var|const)\s+\w+\s+in\s+\w+\s*\)(?![\s\S]{0,100}hasOwnProperty)/i, cwe:"CWE-1321", recommendation:"Utilisez toujours hasOwnProperty() ou Object.hasOwn() lors de la fusion d'objets" },
+];
+
+let currentLang = 'python';
+let scanResults = null;
+
+// Lang selector
+document.querySelectorAll('.lang-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentLang = btn.dataset.lang;
+    const placeholder = currentLang === 'python'
+      ? '# Collez votre code Python ici...\ndef get_user(username):\n    query = "SELECT * FROM users WHERE name=\'" + username + "\'"\n    cursor.execute(query)'
+      : '// Collez votre code JavaScript ici...\nfunction getUser(username) {\n  const query = "SELECT * FROM users WHERE name=\'" + username + "\'";\n  db.query(query);\n}';
+    document.getElementById('codeInput').placeholder = placeholder;
+  });
+});
+
+// File drop
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+function loadFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'js' || ext === 'ts') {
+    currentLang = 'javascript';
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === 'javascript'));
+  } else {
+    currentLang = 'python';
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === 'python'));
+  }
+  const reader = new FileReader();
+  reader.onload = e => { document.getElementById('codeInput').value = e.target.result; };
+  reader.readAsText(file);
+}
+
+// ── ANALYZE ──────────────────────────────────
+function analyzeCode(code, lang) {
+  const rules = lang === 'python' ? PYTHON_RULES : JS_RULES;
+  const lines = code.split('\n');
+  const vulns = [];
+  lines.forEach((line, idx) => {
+    rules.forEach(rule => {
+      if (rule.pattern.test(line)) {
+        vulns.push({ ...rule, lineNumber: idx + 1, lineContent: line.trim() });
+      }
+    });
+  });
+  return vulns;
+}
+
+function generateTests(vulns, lang) {
+  if (!vulns.length) return '# ✅ Aucune vulnérabilité détectée\ndef test_code_is_secure():\n    assert True, "Code sécurisé"';
+
+  let code = `# ============================================================
+# AUTO-GENERATED SECURITY TESTS
+# Généré par Security Regression Test Generator + IA
+# ============================================================
+
+import pytest
+import re
+
+`;
+  vulns.forEach((v, i) => {
+    const fname = v.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    code += `# ── ${v.name} (Ligne ${v.lineNumber}) ──\n`;
+    code += `def test_${fname}_${i+1}():\n`;
+    code += `    """\n    SECURITY TEST: ${v.name}\n    Ligne: ${v.lineNumber} | Sévérité: ${v.severity} | ${v.cwe}\n    """\n`;
+
+    if (v.category === 'Secret Exposure') {
+      code += `    source = open("votre_fichier.${lang === 'python' ? 'py' : 'js'}", "r").read()\n`;
+      code += `    pattern = re.compile(r'(?i)(password|secret|api_key|token)\\s*=\\s*["\\'\\'][^\\"\\'']{4,}["\\'\\'\\']')\n`;
+      code += `    matches = pattern.findall(source)\n`;
+      code += `    assert not matches, f"VULNERABILITY: Secrets trouvés: {matches}"\n\n`;
+    } else if (v.category === 'Cryptography') {
+      code += `    source = open("votre_fichier.${lang === 'python' ? 'py' : 'js'}", "r").read()\n`;
+      if (v.id === 'PY004') code += `    assert "hashlib.md5" not in source and "hashlib.sha1" not in source, "VULNERABILITY: Hash faible détecté"\n\n`;
+      else code += `    assert "random.randint" not in source and "Math.random" not in source, "VULNERABILITY: random() non sécurisé détecté"\n\n`;
+    } else {
+      const payloads = {
+        'Injection': ["'; DROP TABLE users; --", "| cat /etc/passwd", "<script>alert(1)</script>"],
+        'XSS': ["<script>alert('XSS')</script>", "<img src=x onerror=alert(1)>"],
+        'File Access': ["../../etc/passwd", "../../../etc/shadow"],
+        'Code Injection': ["process.exit(1)", "require('child_process').execSync('whoami')"],
+        'Object Injection': ['{"__proto__": {"admin": true}}'],
+        'Deserialization': ['UNTRUSTED_PAYLOAD'],
+      };
+      const pl = (payloads[v.category] || ['MALICIOUS_PAYLOAD'])[0];
+      code += `    payload = ${JSON.stringify(pl)}\n`;
+      code += `    # Vérifie que le code ne traite pas ce payload sans validation\n`;
+      code += `    # TODO: adapter selon votre fonction spécifique à la ligne ${v.lineNumber}\n`;
+      code += `    assert True, f"Pattern dangereux détecté à la ligne ${v.lineNumber} — revue manuelle requise"\n\n`;
+    }
+  });
+  return code;
+}
+
+function calcScore(vulns) {
+  const counts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+  vulns.forEach(v => counts[v.severity] = (counts[v.severity] || 0) + 1);
+  return Math.max(0, 100 - counts.CRITICAL*25 - counts.HIGH*10 - counts.MEDIUM*5 - counts.LOW*2);
+}
+
+// ── AI ANALYSIS ──────────────────────────────
+async function getAIAnalysis(code, vulns, lang) {
+  const vulnSummary = vulns.length
+    ? vulns.map(v => `- [${v.severity}] ${v.name} (${v.cwe}) à la ligne ${v.lineNumber}: "${v.lineContent.substring(0, 60)}..."`).join('\n')
+    : '- Aucune vulnérabilité détectée par l\'analyse statique.';
+
+  const prompt = `Tu es un expert en sécurité applicative (DevSecOps). Analyse ce code ${lang === 'python' ? 'Python' : 'JavaScript'} et les vulnérabilités suivantes détectées:
+
+VULNÉRABILITÉS DÉTECTÉES:
+${vulnSummary}
+
+CODE ANALYSÉ:
+\`\`\`${lang}
+${code.substring(0, 2000)}${code.length > 2000 ? '\n... (code tronqué)' : ''}
+\`\`\`
+
+Fournis une analyse concise en français avec:
+1. **Résumé**: Évaluation générale du niveau de sécurité (2-3 phrases)
+2. **Risques principaux**: Les 2-3 vulnérabilités les plus critiques et pourquoi
+3. **Priorités de correction**: Que corriger en premier et comment (concret)
+4. **Bonne pratique globale**: Un conseil clé pour sécuriser ce type de code
+
+Sois précis, technique et actionnable. Maximum 250 mots.`;
+
+  const response = await fetch(ANTHROPIC_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  const data = await response.json();
+  return data.content?.[0]?.text || 'Analyse IA indisponible.';
+}
+
+// ── STEPS ANIMATION ──────────────────────────
+function setStep(n, status) {
+  const step = document.getElementById(`step${n}`);
+  step.className = 'loading-step ' + status;
+  const dot = step.querySelector('.step-dot');
+  dot.className = 'step-dot' + (status === 'active' ? ' spinning' : '');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── MAIN SCAN ────────────────────────────────
+async function startScan() {
+  const code = document.getElementById('codeInput').value.trim();
+  if (!code) { alert('Veuillez coller du code ou télécharger un fichier.'); return; }
+
+  document.getElementById('uploadSection').style.display = 'none';
+  document.getElementById('loading').classList.add('active');
+  document.getElementById('results').classList.remove('active');
+
+  setStep(1, 'active');
+  await sleep(600);
+  setStep(1, 'done'); setStep(2, 'active');
+
+  const vulns = analyzeCode(code, currentLang);
+  await sleep(800);
+  setStep(2, 'done'); setStep(3, 'active');
+
+  let aiText = '';
+  try {
+    aiText = await getAIAnalysis(code, vulns, currentLang);
+  } catch(e) {
+    aiText = `⚠️ Analyse IA indisponible (vérifiez votre connexion).\n\nAnalyse statique: ${vulns.length} vulnérabilité(s) détectée(s) par pattern matching.\n\n${vulns.map(v => `• [${v.severity}] ${v.name} — ${v.description || v.cwe}`).join('\n')}`;
+  }
+
+  setStep(3, 'done'); setStep(4, 'active');
+  const testsCode = generateTests(vulns, currentLang);
+  await sleep(500);
+  setStep(4, 'done');
+  await sleep(400);
+
+  document.getElementById('loading').classList.remove('active');
+  displayResults(vulns, aiText, testsCode, code);
+}
+
+// ── DISPLAY ──────────────────────────────────
+function displayResults(vulns, aiText, testsCode, code) {
+  const score = calcScore(vulns);
+  const counts = { CRITICAL:0, HIGH:0, MEDIUM:0, LOW:0 };
+  vulns.forEach(v => counts[v.severity] = (counts[v.severity]||0)+1);
+
+  // Score ring
+  const circumference = 238.76;
+  const offset = circumference - (score/100)*circumference;
+  const scoreCircle = document.getElementById('scoreCircle');
+  scoreCircle.style.strokeDashoffset = offset;
+  scoreCircle.style.stroke = score >= 80 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171';
+
+  document.getElementById('scoreNum').textContent = score;
+  document.getElementById('scoreNum').style.color = score >= 80 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171';
+
+  const label = score >= 80 ? 'Bon' : score >= 50 ? 'Moyen' : 'Critique';
+  document.getElementById('resultTitle').textContent = `Score de sécurité : ${label}`;
+  document.getElementById('resultDesc').textContent =
+    vulns.length === 0 ? 'Aucune vulnérabilité détectée. Le code respecte les bonnes pratiques.' :
+    `${vulns.length} vulnérabilité(s) détectée(s) — ${counts.CRITICAL} critique(s), ${counts.HIGH} haute(s), ${counts.MEDIUM} moyenne(s).`;
+
+  // KPIs
+  document.getElementById('kpiTotal').textContent = vulns.length;
+  document.getElementById('kpiCritical').textContent = counts.CRITICAL;
+  document.getElementById('kpiHigh').textContent = counts.HIGH;
+  document.getElementById('kpiMedium').textContent = counts.MEDIUM;
+  document.getElementById('kpiLow').textContent = counts.LOW || 0;
+  document.getElementById('kpiTests').textContent = vulns.length;
+
+  // AI
+  document.getElementById('aiAnalysis').textContent = aiText;
+
+  // Vuln cards
+  const vulnList = document.getElementById('vulnList');
+  vulnList.innerHTML = '';
+  if (!vulns.length) {
+    vulnList.innerHTML = '<div style="text-align:center;padding:40px;color:var(--low);font-size:0.9rem">✅ Aucune vulnérabilité détectée</div>';
+  } else {
+    vulns.forEach(v => {
+      vulnList.innerHTML += `
+      <div class="vuln-card sev-${v.severity}">
+        <div class="vuln-top">
+          <span class="sev-badge ${v.severity}">${v.severity}</span>
+          <span class="vuln-name">${v.name}</span>
+          <span class="cwe-pill">${v.cwe}</span>
+        </div>
+        <div class="vuln-desc">${v.category} — Ligne ${v.lineNumber}</div>
+        <div class="vuln-line">${v.lineContent.replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,120)}</div>
+        <div class="vuln-rec">💡 ${v.recommendation}</div>
+      </div>`;
+    });
+  }
+
+  // Tests
+  document.getElementById('testsCode').textContent = testsCode;
+
+  // Gate
+  const gate = document.getElementById('gateBanner');
+  const criticalCount = counts.CRITICAL;
+  if (criticalCount > 0) {
+    gate.className = 'gate-banner blocked';
+    document.getElementById('gateIcon').textContent = '❌';
+    document.getElementById('gateTitle').textContent = `BUILD BLOQUÉ — ${criticalCount} vulnérabilité(s) CRITICAL`;
+    document.getElementById('gateDesc').textContent = 'Le pipeline CI/CD aurait bloqué ce déploiement. Corrigez les failles critiques avant de pousser.';
+  } else {
+    gate.className = 'gate-banner pass';
+    document.getElementById('gateIcon').textContent = '✅';
+    document.getElementById('gateTitle').textContent = 'BUILD AUTORISÉ — Security Gate passé';
+    document.getElementById('gateDesc').textContent = 'Aucune vulnérabilité critique. Le pipeline CI/CD autoriserait ce déploiement.';
+  }
+
+  scanResults = { vulns, aiText, testsCode, score, code };
+  document.getElementById('results').classList.add('active');
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+function copyTests() {
+  if (!scanResults) return;
+  navigator.clipboard.writeText(scanResults.testsCode).then(() => alert('✅ Tests copiés dans le presse-papier !'));
+}
+
+function downloadReport() {
+  if (!scanResults) return;
+  const { vulns, aiText, score } = scanResults;
+  const counts = { CRITICAL:0, HIGH:0, MEDIUM:0, LOW:0 };
+  vulns.forEach(v => counts[v.severity] = (counts[v.severity]||0)+1);
+
+  const rows = vulns.map(v =>
+    `<tr><td><span style="background:rgba(248,113,113,0.15);color:#f87171;padding:2px 8px;border-radius:4px;font-size:0.75rem">${v.severity}</span></td>
+    <td>${v.name}</td><td>${v.cwe}</td><td>Ligne ${v.lineNumber}</td>
+    <td style="font-family:monospace;font-size:0.75rem">${v.lineContent.replace(/</g,'&lt;').substring(0,60)}</td>
+    <td style="font-size:0.8rem">${v.recommendation}</td></tr>`
+  ).join('');
+
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Security Report</title>
+  <style>body{font-family:system-ui,sans-serif;background:#0a0e1a;color:#e8f0fe;padding:40px;max-width:1200px;margin:0 auto}
+  h1{font-size:2rem;margin-bottom:8px}p{color:#6b7fa3;font-size:0.9rem}
+  .kpis{display:flex;gap:16px;margin:24px 0}
+  .kpi{background:#0d1321;border:1px solid rgba(99,179,237,0.12);border-radius:10px;padding:16px 24px;text-align:center}
+  .kpi .n{font-size:2rem;font-weight:700}.kpi .l{font-size:0.75rem;color:#6b7fa3}
+  table{width:100%;border-collapse:collapse;background:#0d1321;border-radius:12px;overflow:hidden;margin-top:24px}
+  th{background:#141d2e;padding:12px 16px;text-align:left;font-size:0.75rem;color:#6b7fa3;text-transform:uppercase}
+  td{padding:12px 16px;border-bottom:1px solid rgba(99,179,237,0.08);font-size:0.85rem}
+  .ai{background:#0d1321;border:1px solid rgba(139,92,246,0.25);border-radius:12px;padding:24px;margin:24px 0}
+  .ai h2{color:#c4b5fd;margin-bottom:12px;font-size:1rem}.ai p{color:#e8f0fe;line-height:1.7;white-space:pre-wrap}
+  </style></head><body>
+  <h1>🔒 Security Regression Report</h1>
+  <p>Généré le ${new Date().toLocaleString('fr-FR')} — Score: ${score}/100</p>
+  <div class="kpis">
+    <div class="kpi"><div class="n" style="color:#60a5fa">${vulns.length}</div><div class="l">Total</div></div>
+    <div class="kpi"><div class="n" style="color:#f87171">${counts.CRITICAL}</div><div class="l">Critical</div></div>
+    <div class="kpi"><div class="n" style="color:#fb923c">${counts.HIGH}</div><div class="l">High</div></div>
+    <div class="kpi"><div class="n" style="color:#fbbf24">${counts.MEDIUM}</div><div class="l">Medium</div></div>
+  </div>
+  <div class="ai"><h2>🤖 Analyse IA — Claude</h2><p>${aiText}</p></div>
+  <table><thead><tr><th>Sévérité</th><th>Vulnérabilité</th><th>CWE</th><th>Position</th><th>Code</th><th>Recommandation</th></tr></thead>
+  <tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:#34d399">✅ Aucune vulnérabilité détectée</td></tr>'}</tbody></table>
+  </body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `security_report_${Date.now()}.html`;
+  a.click();
+}
+
+function resetApp() {
+  document.getElementById('results').classList.remove('active');
+  document.getElementById('uploadSection').style.display = 'block';
+  document.getElementById('codeInput').value = '';
+  document.getElementById('loading').classList.remove('active');
+  [1,2,3,4].forEach(n => setStep(n, ''));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

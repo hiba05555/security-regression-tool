@@ -4,6 +4,7 @@ basés sur les vulnérabilités détectées par l'analyseur.
 """
 
 import os
+import re
 import json
 from typing import List
 
@@ -72,7 +73,8 @@ def generate_python_tests(vulnerabilities: list, output_path: str):
             template = vuln.get("test_template", "")
             payloads = PAYLOADS.get(template, ["GENERIC_PAYLOAD"])
             severity = vuln.get("severity", "LOW")
-            name = vuln.get("name", "Unknown").replace(" ", "_").replace("/", "_").replace("-", "_").lower()
+            raw_name = vuln.get("name", "Unknown")
+            name = re.sub(r"[^a-zA-Z0-9_]", "_", raw_name).lower().strip("_")
             file_path = vuln.get("file_path", "unknown")
             line_number = vuln.get("line_number", 0)
             cwe = vuln.get("cwe", "N/A")
